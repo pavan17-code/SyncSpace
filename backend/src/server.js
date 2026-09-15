@@ -5,7 +5,26 @@ import cookieParser from "cookie-parser";
 import mongoose from "mongoose";
 import connectDB from "./config/db.js";
 import authRoutes from "./routes/auth.routes.js";
+import { Server } from "socket.io";
 
+export const createSocketServer = (httpServer) => {
+    const io = new Server(httpServer, {
+        cors: {
+            origin: "http://localhost:5173",
+            credentials: true
+        }
+    });
+
+    io.on("connection", (socket) => {
+        console.log(`Socket connected: ${socket.id}`);
+
+        socket.on("disconnect", (reason) => {
+            console.log(`Socket disconnected: ${socket.id} (${reason})`);
+        });
+    });
+
+    return io;
+};
 
 
 dotenv.config();
@@ -44,9 +63,13 @@ const PORT = process.env.PORT || 54321;
 const startServer = async () => {
     await connectDB();
 
-    app.listen(PORT, () => {
-        console.log(` SyncSpace server running on port ${PORT}`);
-    });
+  const httpServer = http.createServer(app);
+
+createSocketServer(httpServer);
+
+httpServer.listen(PORT, () => {
+    console.log(` SyncSpace server running on port ${PORT}`);
+});
 };
 
 startServer();
